@@ -1,0 +1,93 @@
+{% extends 'base.html' %}
+
+{% block content %} <!-- this opens a block for which content can be written onto the page -->
+<style>
+  /* Navbar Brand */
+  .navbar-brand {
+    font-size: 1.2rem; /* Larger font size */
+    font-weight: bold; /* Bold text */
+    color: #333; /* Dark gray text  */
+    text-transform: uppercase; /* Text in all caps */
+    }
+
+
+    .navbar-nav .nav-link {
+    font-size: 1.2rem; /* Font size slightly larger than default */
+    color: #555; /* lighter gray than before */
+    text-transform: uppercase; /* All Caps text */
+    transition: color 0.3s ease-in-out; /* Smooth color transition (found on navbar demo) */
+    }
+
+    .navbar-nav .nav-link:hover {
+    /* Styles for links in the navbar on hover */
+    color: #007bff; /* Blue text color on hover */
+    }
+
+    
+    .form-control {
+    /* Styles for form input elements */
+    border-radius: 20px; /* Rounded corners */
+    border-color: #ccc; /* Light gray border color that doesnt show through*/
+    }
+
+    .custom-btn-outline {
+    /* This section is overwritten color wise by something in the bootstrap documsnts */
+    border: 2px solid #000; 
+    color: #000; 
+    background-color: #fff;
+    }
+
+    .custom-btn-outline:hover {
+    /* on hover */
+    background-color: #4d4c4c; /* Dark gray hover background */
+    color: #fff; /*white text that doesnt really work */
+    }
+
+    nav.navbar {
+    /* Styles for the navbar element */
+    background-color: #007bff !important; /* important to make sure that the navbar is at the front */
+    }
+    
+  </style>
+  <nav class="navbar fixed-top navbar-expand-lg navbar-light"> <!-- This defines the navbar class from bootsrap, and is refrenced in the base so that this bar is on the top of any page you go to. -->
+      <div class="container-fluid"> <!--this pushes the text on the navbar to be fluid on the edges-->
+        <a class="navbar-brand" href="{% url 'index' %}">Power Grid Emergency Notifier</a> <!-- This refrences the index.html file and displays the name of the navbar and website on the top left -->
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation"><!-- This gives me the ability to switch through tabs on the Navbar -->
+          <span class="navbar-toggler-icon"></span>
+        </button><!-- Creating the initial Button which returns to the home or notifications page -->
+        <div class="collapse navbar-collapse" id="navbarSupportedContent"><!--bootstrap to help with smaller screeens-->
+          <ul class="navbar-nav me-auto mb-2 mb-lg-0"><!--starting the unordered list for the bootsrap-->
+            <li class="nav-item"><!--this gives the navigation item that we are about to defone-->
+              <a class="nav-link custom-nav-link" href="{% url 'about' %}">Help</a><!--this refrences the page that is the help page, and links this button to that url-->
+            </li>
+          </ul>
+          <head>
+            <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&libraries=places"></script>
+        </head>
+          
+         
+          
+        </div>
+      </div>
+  </nav>
+  <br>
+  <br>
+  <br>
+  <br>
+  <br>
+  <!--THis is the standard bootstrap format for a query, that will take in the input. THis also has a 
+            format checker to make sure that the value inputted is strictly 5 digits, and if not it will display an error by executing the pattern checks-->
+            <!-- this is the button that submitts the form if the inpit is valid, and is the thing that is being listened too below-->
+    <div style="text-align: center;"> <!-- aligninig the text to the center of the page for the contact header, as well as grouping the following elements together-->
+        <h1 style="font-size: 36px; text-align: center;">Contact</h1> <!-- giving the font size and the center alignment for contact -->
+        <p style="font-size: 26px; text-align: center;"> <!-- opening a paragraph tag for the following alignment, goving it a text size of 26 pixels -->
+            You can reach us through the following email addresses:
+            <br /> <!-- text break to drop down a line -->
+            <ul style="text-align: center; display: inline-block;"><!-- opening an unordered list, that will allow me to center the emails and display the emails in the block created by the paragraph -->
+                <li style="font-size: 20px; text-align: center;"><a href="mailto:pmartin5@tamu.edu">pmartin5@tamu.edu</a></li><!-- opening the list tag that is in the center, and closing it to allow for the next line -->
+                <li style="font-size: 20px; text-align: center;"><a href="mailto:monica147@tamu.edu">monica147@tamu.edu</a><!-- giving the font size and the center alignment for contact -->
+                <li style="font-size: 20px; text-align: center;"><a href="mailto:brandon.graeber.01@tamu.edu">brandon.graeber.01@tamu.edu</a></li><!-- creating the links to bring the user to the email automatically-->
+            </ul> <!-- closing the list -->
+        </p><!-- closing the paragraph -->
+    </div>
+{% endblock %}

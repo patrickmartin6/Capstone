@@ -1,0 +1,602 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+    .navbar-brand {
+    font-size: 1.8rem; /* Larger font size */
+    font-weight: bold; /* Bold text */
+    color: #333; /* Dark gray text  */
+    text-transform: uppercase; /* Text in all caps */
+    }
+
+
+    .navbar-nav .nav-link {
+    font-size: 1.2rem; /* Font size slightly larger than default */
+    color: #555; /* lighter gray than before */
+    text-transform: uppercase; /* All Caps text */
+    transition: color 0.3s ease-in-out; /* Smooth color transition (found on navbar demo) */
+    }
+
+    .navbar-nav .nav-link:hover {
+    /* Styles for links in the navbar on hover */
+    color: #007bff; /* Blue text color on hover */
+    }
+
+    
+    .form-control {
+    /* Styles for form input elements */
+    border-radius: 20px; /* Rounded corners */
+    border-color: #ccc; /* Light gray border color that doesnt show through*/
+    }
+
+    .custom-btn-outline {
+    /* This section is overwritten color wise by something in the bootstrap documsnts */
+    border: 2px solid #000; 
+    color: #000; 
+    background-color: #fff;
+    }
+
+    .custom-btn-outline:hover {
+    /* on hover */
+    background-color: #4d4c4c; /* Dark gray hover background */
+    color: #fff; /*white text that doesnt really work */
+    }
+
+    nav.navbar {
+    /* Styles for the navbar element */
+    background-color: #007bff !important; /* important to make sure that the navbar is at the front */
+    }
+  </style>
+  
+  <nav class="navbar fixed-top navbar-expand-lg navbar-light"> <!-- This defines the navbar class from bootsrap, and is refrenced in the base so that this bar is on the top of any page you go to. -->
+      <div class="container-fluid"> <!--this pushes the text on the navbar to be fluid on the edges-->
+        <a class="navbar-brand" href="{% url 'index' %}">Power Grid Emergency Notifier</a> <!-- This refrences the index.html file and displays the name of the navbar and website on the top left -->
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation"><!-- This gives me the ability to switch through tabs on the Navbar -->
+          <span class="navbar-toggler-icon"></span>
+        </button><!-- Creating the initial Button which returns to the home or notifications page -->
+        <div class="collapse navbar-collapse" id="navbarSupportedContent"><!--bootstrap to help with smaller screeens-->
+          <ul class="navbar-nav me-auto mb-2 mb-lg-0"><!--starting the unordered list for the bootsrap-->
+            <li class="nav-item"><!--this gives the navigation item that we are about to defone-->
+              <a class="nav-link custom-nav-link" href="{% url 'about' %}">Help</a><!--this refrences the page that is the help page, and links this button to that url-->
+            </li>
+          </ul>
+         
+        <form class="d-flex" role="search" id="updateForm"><!--THIS IS FOR THE UPDATE ZIPCODE PORTION-->
+            <input class="form-control me-2" type="search" placeholder="Update 5 Digit Zipcode" aria-label="Search" pattern="\d{5}" id="zipcodeInput"> <!--THis is the standard bootstrap format for a query, that will take in the input. THis also has a 
+                format checker to make sure that the value inputted is strictly 5 digits, and if not it will display an error by executing the pattern checks-->
+            <button class="btn custom-btn-outline" type="submit" id="updateButton">Update</button>             <!-- this is the button that submitts the form if the inpit is valid, and is the thing that is being listened too below-->
+
+        </form>
+        
+        <script type="module"> // module per firebases requirements
+            document.getElementById('updateForm').addEventListener('submit', function(event) { // checcks when updateForm is used and makes sure that it is caught, taking in data
+                event.preventDefault(); // Prevents the default form submission behavior
+                
+    
+                const zipcode = document.getElementById('zipcodeInput').value; // taking in the new zipcode to change
+                
+                
+                console.log('Entered Zipcode:', zipcode); // debug help
+                updatezipcode(zipcode); // calling function to update zipcode
+                
+        
+            });
+            
+                console.log("Initializing Firebase...");
+                import { initializeApp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js"; //initalizing the app
+                import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-analytics.js"; // analyticas (not used here)
+                import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-auth.js"; // more preloaded not used stuff becasue of the nature of over writing
+                import { getDatabase, ref, set, get, onValue} from "https://www.gstatic.com/firebasejs/10.4.0/firebase-database.js"; // having the refrence to firebase realtime database and more
+                    const firebaseConfigextra = { // firebase credentials
+                    apiKey: "AIzaSyCl06PfaiUY80Dk9ZBKGbBxNRfvGa-6Qkc",
+                    authDomain: "website-4c33e.firebaseapp.com",
+                    projectId: "website-4c33e",
+                    storageBucket: "website-4c33e.appspot.com",
+                    messagingSenderId: "1089782674580",
+                    appId: "1:1089782674580:web:fa60f5c795c6241152b081",
+                    measurementId: "G-FQJEDCK0SN"
+                    };
+                
+                    // Initialize Firebase in a diffrentn instance then below, since this is strictly in  the navbar section and cannot be shared across the page
+                    
+                    const app2 = initializeApp(firebaseConfigextra);
+                    const analytics2 = getAnalytics(app2);
+                    const auth2 = getAuth(); // we will use this authentication soon
+
+                    let email2; // declating the email variable for use outside of the function
+
+                    onAuthStateChanged(auth2, function(user) {
+                        if (user) { // checking to make sure that a user is logged in via firebase
+                            const db2 = getDatabase(); // gettign a refrence database
+                            
+                            email2 = user.email; // taking the user structure to extract the email that is currently logged in
+                            globalThis.email2; // making this global (in this <script>)
+                            
+                            console.log('email for the zip code change ', email2); // debugging
+                            
+                        }
+                    });
+
+                    function updatezipcode(newzipcode) {
+                        if (email2) { // this is why the email needed to be global, so what we can use this to write over what is currently in the database without losing data
+
+                                console.log('entered'); //debug
+                                console.log(email2); // checking to make sure its not undefined
+                                const db2 = getDatabase(); // getting the refrence datbaase again since there were issues before
+                               
+                                var replacement = email2.replaceAll(".", ""); // taking out the characters that cannot be used for the user id, and will help match the certain instance in the database
+                                replacement.replaceAll("#", "");
+                                replacement.replaceAll("$", "");
+                                
+
+                                const userRef1 = ref(db2, 'users/' + replacement); // creating a refrence that is zoned into the specific spot on the realtime database, to ensure that we are writing to the correct user
+
+                                set(userRef1, {// writing over the current data and replacing it with the new data in the database
+                                    email : email2, // emaik
+                                    zipCode: newzipcode // updating the zipcode to ensure it will have the same format
+                                }).then(() => {
+                                    console.log('Zipcode updated successfully.'); // debugging
+                                }).catch((error) => {
+                                    console.error('Error updating zipcode:', error); // see what the error is if there is one
+                                });
+                            
+                        }
+                    };
+                           
+        </script>
+          
+        </div>
+      </div>
+  </nav>
+  <br>
+  <br>
+  <br> <!--breaks to seperate what is on the page--> 
+
+  
+            
+<div id="user-info"> <!--this is menntioned and formatted later on, but this is where the sentance that displays the user and zipcide is displayed-->
+</div>
+<div class="button-container"><!--creating the button for the logout-->
+    <button type="button" class="btn btn-primary" id="logoutbutton">Logout</button> <!-- taking the button for logging out and assigning it a id that can be monitered later in the code-->
+</div>
+
+
+
+<style>
+    .small-button {
+        display: inline-block;
+        padding: 5px 10px; /*padding for surrounding stuff */
+        background-color: #f9fafb; /* Button background color */
+
+        border: none;
+        border-radius: 5px; /* Rounded corners */
+        cursor: pointer;
+        text-decoration: none;
+    }
+
+    /* Styling for user-info div */
+    #user-info {
+        border: none; /* Remove the border */
+        padding: 20px; /* Padding inside the div */
+        background-color: #f5f5f5; /* Background color */
+        border-radius: 8px; /* Rounded corners */
+        width: 80%; /* Setting a width that isnt too large for the page */
+        margin: 0 auto; /* Center the div horizontally */
+        display: flex; /* Use flexbox so it can adjust if made smaller */
+        justify-content: center; /* Center horizontally so it is always front and center */
+        align-items: center; /* Center vertically */
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Subtle box shadow */
+    }
+
+
+    .small-button:hover {
+        background-color: #0056b3; /* Change color on hover */
+    }
+
+    .button-container {
+        text-align: center; /* Align the container content to the center */
+        margin-top: 10px; /* Adding some top margin to make it look better */
+    }
+
+    
+    .button-container .btn {
+        display: inline-block; /*allows it to sit horizontally next to other items */
+    }
+
+
+</style>
+
+
+<head>
+    
+     <!-- Including the Bootstrap CSS file for formatting of all bootstrap used-->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"> <!--incliusing all nessacary refrences-->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+   <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+
+    <script type="module"> // module based off of firebases requirements
+    console.log("Initializing Firebase..."); // debug help
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js"; // beginning the communication
+    import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-analytics.js"; //analytics is not used, but this code is pulled from firebases website, and inclued this
+    import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-auth.js"; // most important likne, includong all of the FIREBASE functions that are used on this website page for communication 
+    import { getDatabase, ref, set, get, onValue} from "https://www.gstatic.com/firebasejs/10.4.0/firebase-database.js"; // functions provided by firebase to read and write data
+        const firebaseConfig = { // firebase keys for my project
+          apiKey: "AIzaSyCl06PfaiUY80Dk9ZBKGbBxNRfvGa-6Qkc",
+          authDomain: "website-4c33e.firebaseapp.com",
+          projectId: "website-4c33e",
+          storageBucket: "website-4c33e.appspot.com",
+          messagingSenderId: "1089782674580",
+          appId: "1:1089782674580:web:fa60f5c795c6241152b081",
+          measurementId: "G-FQJEDCK0SN"
+        };
+      
+        // Initialize Firebase
+        
+        const app = initializeApp(firebaseConfig);
+        const analytics = getAnalytics(app);
+        const auth = getAuth();
+
+        onAuthStateChanged(auth, function (user) {
+            if (user) {
+        // if the user is is logged in, set a flag in sessionStorage
+                globalThis.user; // trying to globalize the user to be used in onvalue later
+                console.log("starting"); // debug help
+
+                sessionStorage.setItem('userloggedin', 'true'); // setting the flag for the user logged in
+                const userInfo = document.getElementById('user-info'); // taking the information from the user-info, as it is set possibly in the script code above
+                const email = user.email; // pulling the email from the firebase database of who is currently logged in
+                console.log(email);
+                const db = getDatabase(); // setting up the database refrence to the firebase database
+                var replacement = email.replaceAll(".", ""); // replacing the characters that cannot be used in the firebase databses naming convention with something else
+                replacement.replaceAll("#", ""); // same
+                replacement.replaceAll("$", ""); //  same
+                console.log(replacement);
+                const userRef = ref(db, 'users/' + replacement); // creating a instance at the certain location where the email and zipcode are stored
+
+                var starCountRef = ref(db, 'users/' + replacement); // pulled from firebase documentation, does the same as the line above
+                onValue(starCountRef, (snapshot) => { // taking a snapshot (reading) what is currently at that location in the firebase database
+                    const data = snapshot.val(); // moving the snapshot to a data structure that includes the email and zipcode
+                    if (data) { // ensuring the success of the snapshot and data being there
+                        console.log(data); // debug
+    
+                        zipcode = data.zipCode; // this is how we find the zipcode to initially search for and display. Communicating across pages was too finikey and did not work, so we retrive it
+                        console.log(zipcode) // ensuring this worked
+                        
+                        globalThis.zipcode; // trying ti use the zipcode elsewhere in the code
+                        userInfo.innerHTML = `Logged in as: ${user.email}, searching in the: ${zipcode} zipcode`; // this was the only way for me to actyaly display the active user and zipcode, since the zipcode is dynamic
+                        // and can be used only in this function. This line is displayed and uses the formatting above
+                        console.log("Logged in as: " + email +  "," + zipcode); // debug to check for correctness
+                        console.log("Zipcode: " + zipcode) // debug
+                        handlewebsocketconnect(email, zipcode); // THis is the big change made in recent weeks, where the Websocket connection is handled by a function that takes in the user AND ZIPCODE, 
+                        //this gives the oppertunity for changinging zipcode when the data changes
+                    } else {
+                        // Handle the case where there's no data
+                        console.log("No data found");
+                    }
+                });
+    
+            }
+        });
+    
+
+        let email = ""; // Declare email outside the callback
+        let zipcode = 0; // Declare zipcode outside the callback
+    
+
+        
+        const wsUrl = "ws://10.254.202.63:12345"; // declearing the websocket connection to the server
+        const ws = new WebSocket(wsUrl); // using the online format to create a new instance of the websocket connection
+        function senddata(email, zipcode) { // tremendous helping functionn that sends the email and zipcode with get history for displaying. Also allows for repetivtive sending
+            ws.send(`${email}:${zipcode}:get history`);
+            console.log(`${email}:${zipcode}:get history`)
+        }
+
+    function handlewebsocketconnect(email, zipcode) { // function to handle everything that goes and comes from the websocket connection
+         // "ws://10.254.202.63:12345" - main server
+          
+        console.log("WebSocket Connected");
+        
+        console.log("done");
+        function senddata(email, zipcode) { // redeclaring this inside of the function as this was giving me an issue earlier
+            ws.send(`${email}:${zipcode}:get history`);
+            console.log(`${email}:${zipcode}:get history`)
+        }
+
+
+        // Open WebSocket connection
+        ws.addEventListener('open', (event) => { // this tells when the websocket is ready to go and can recive traffic
+            console.log('WebSocket connection opened');
+            senddata(email, zipcode); // Send data immediately upon connection
+            // Set interval to send data every 10 seconds
+            //setInterval(() => {
+            //    senddata();
+            //}, 10000); // 10000 milliseconds = 10 seconds
+        });
+
+        ws.addEventListener('message', (event) => { // reciving a message from the server
+            const message = event.data; // taking the data from the message to be displayed
+            ontextrecived(message); // calling the text recived function to handle the data and display it correctly
+            console.log(message) //debug
+        });
+
+        ws.addEventListener('close', (event) => { // notifiing when and why the conncection is closing - helps debug
+            console.log('WebSocket connection closed:', event.code, event.reason);
+        });
+
+        ws.addEventListener('error', (event) => { // notificaion of an error
+            console.error('WebSocket error:', event);
+        });
+
+    
+
+        
+
+    function ontextrecived(message) { // taking the data of the previous message and preparing it to be displayed. THis is super iportant to the presentation of my data
+                //console.log("websocketclient: " + message);
+            
+            try {
+                if (message.startsWith("[{")) { // ensuring that the message begins with the correct format
+                    var updates = JSON.parse(message); // used to parse a JSON string and convert it into a javascript object.
+                    clearTable(); // clearing the table of anything that was on there before, because if it was on there before it will also be in this message based off the way the server sends ALL HISTORY
+
+                    for (var i = 0; i < updates.length; i++) { // taking each of the objects (data) and iterating it through to display data to the table correctly
+                        var update = updates[i]; // taking the certain data
+
+                        var type = update.type; // gives the type of data, meanin what is going to be diaplayed (modetate, immmediate threat)
+                        var infoArray = update.info; // info array is an array of the conglomerate of information
+
+                        console.log("websocketclient: " + type); // debug
+
+                        if (infoArray.length === 0) { // should not happen but could
+                            console.log("websocketclient: no threats");
+                        }
+
+                        for (var j = 0; j < infoArray.length; j++) { // taking the message and parsing and displaying the data onto the table
+                            var info_list = infoArray[j];
+
+                            for (var k = 0; k < info_list.length; k++) {
+                                switch (k) { // splitting the data upp to be displayed, which will show up later in the add new row function
+                                    case 0:
+                                        var dateTime = info_list[k]; // the beginnning of the data is the date and time of the message
+                                        console.log("websocketclient: " + dateTime);
+                                        // update HTML element for date
+                                        break;
+                                    case 1:
+                                        var threat_level = info_list[k]; // the second part of the data is the threat level of the message
+                                        console.log("websocketclient: " + threat_level);
+                                        //update HTML element for threat level
+                                 
+                                        break;
+                                    case 2:
+                                        var messageContent = info_list[k];// this is the meat of the message, and what will populate the table most
+                                        console.log("websocketclient: " + messageContent); 
+                                        // Update HTML element for message content
+                                        break;
+                                    case 3:
+                                        var city = info_list[k]; // takes in the city to display as well
+                                        console.log("websocketclient: " + city);
+                                        // Update HTML element for city
+                                        
+                                        addnewrow(messageContent, city, threat_level, dateTime) // now that all of the parameters are created and good for use, the order of the table is addded and the data is displayed using the add new row function
+                                        break;
+                                    default:
+                                        break;
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error(e); // catching any errors
+            }
+        }
+    }
+        const logoutbutton = document.getElementById('logoutbutton'); // monitering the logout button
+
+        // Add a click event listener to the logout button
+        logoutbutton.addEventListener('click', function () { // listens for a click of the logoutbutton to resume
+        // Log the user out
+            signOut(auth) // takes the user and signs them out on the FIREBASE side, there fore I must show that as well
+                .then(function () {
+                    // user is logged out successfully
+                    sessionStorage.removeItem('userloggedin'); // remove the user login flag, which will show on screeen
+                    location.reload(); // reload the page to ask for a new login
+                })
+                .catch(function (error) {
+                    // handling errors with tihs
+                    console.error('Logout failed:', error);
+                });
+        });
+        
+
+        const userloggedin = sessionStorage.getItem('userloggedin'); // taking in the flag if the user is logged in or not
+
+        
+        if (!userloggedin) {
+            $('#myloginmodal').modal('show'); // if the user is not logged in, show the modal - this has given me a bunch of trouble
+        }
+        //below is used so that firebase knows what tags ill be using to manipulate data and check features
+        const firebaseScriptTags = document.querySelectorAll('script[src^="https://www.gstatic.com/firebasejs/10.4.0/"]');
+        for (const scriptTag of firebaseScriptTags) {
+            scriptTag.onload = initializeFirebase;
+        }
+      
+          // intercept form submission
+        $('#loginForm').submit(function (event) { // taking the login modal
+            event.preventDefault(); // Prevent the default form submission
+      
+    
+            var email = $('#Email').val(); // taking in the user email
+            globalThis.email; // trying to make this global
+            var password = $('#Password').val(); // taking in the user password
+      
+            // Firebase login - taken from their website for logging in 
+            signInWithEmailAndPassword(auth, email, password) // signing the user in, making sure that it works
+              .then(function () { // makes sure that the user is in fact logged in
+                
+                $('#myloginmodal').modal('hide'); // closing the modal if it is not logged in
+                location.reload(); // reloads the page so that the other functions can execute and we can GETHISTORY and diplay their data
+              })
+              .catch(function (error) {
+                // Handle login errors
+                alert('Login failed: Incorrect Username or Password'); // thisis strategic so that the user cannot see any other information, which is for security purposes
+              });
+        });
+        
+
+        
+        
+        console.log(email);// checking to make sure that the email traveeled
+            setInterval(() => { // this lets the code repeat every 15 seconds to make sure that the data is updated, AND that the zipcode being displayed is the one in use.
+            setTimeout(5000); // takes a 5 second pause, which is mostly because if not this will activate as soon as the page is refreshed and there will be issues with firebase use overlapping
+    
+            onAuthStateChanged(auth, function (user) { // using this function again, STRICTLY to get the current email and ZIPCODE
+            if (user) { // checking for a user logged in
+                globalThis.user;
+                console.log("starting"); // debug
+
+                sessionStorage.setItem('userloggedin', 'true'); // setting the flag in case it was missed elsewhere
+                const userInfo = document.getElementById('user-info'); // taking in the user info just in case
+                const email = user.email; // taking in the current email form the firebase databse
+                console.log(email);
+                const db = getDatabase();// refreshing the database for use
+                var replacement = email.replaceAll(".", ""); // replacing the invalid user id characters so we have no issues
+                replacement.replaceAll("#", ""); // same
+                replacement.replaceAll("$", ""); // same
+                console.log(replacement);
+                const userRef = ref(db, 'users/' + replacement);
+
+                var starCountRef = ref(db, 'users/' + replacement); // taking the refrence of a single spot in the database, so We can pull that specific data
+                onValue(starCountRef, (snapshot) => { // taking a snapshot of the data at that node
+                    const data = snapshot.val(); // making the snapshot into usable data as before
+                    if (data) { // chefcking to see that this in fact worked and nothing was altered
+                        console.log(data); // debug
+                        zipcode = data.zipCode; // taking in the ZIPCODE - THIS IS CRUCIAL to do in this spot exactly because the zipcode could have changed from the code in the navbar, and we want to guarentee that we are using the correct search criteria 
+                        senddata(email,zipcode); // requesting data for the new zipcode if applicable
+                        globalThis.zipcode; //making the new zipcode global
+                        userInfo.innerHTML = `Logged in as: ${user.email}, searching in the: ${zipcode} zipcode`; // editing the textbox at the top of the page to ensure that all is updated 
+                        console.log("Logged in as: " + email +  "," + zipcode); // debug
+                        console.log("Zipcode: " + zipcode) // debug
+                        
+                    } else {
+                        // handle the case where there's no data
+                        console.log("No data found");
+                    }
+                });
+    
+            }
+        });
+            
+            
+        }, 10000); // executinh  the code every 15 seconds
+            
+            console.log('After 15 seconds');
+    
+        
+      
+    </script>
+    <script>
+        function addnewrow(description, location, severity, time) { // takes the message, location, severity, and time and prepares them to be displayed
+            var tablebody = document.getElementById("tablebody"); // takes the table body from the bootstrap below
+
+            
+            
+            // creating a new row element
+            var newRow = document.createElement("tr"); // table row element using the Document Object Model manipulatiion
+            
+            // Add content to the new row
+            newRow.innerHTML = `
+                <th scope="row">${tablebody.childElementCount + 1}</th> <!-- creating a table header cell for the row number, this means the tweet number-->
+                <td>${description}</td>   <!-- adds the description to the table -->
+                <td>${location}</td> <!-- adds the location to the table -->
+                <td>${severity}</td> <!-- adds the event severity to the table -->
+                <td>${time}</td> <!-- adds the time to the table -->
+            `;
+            
+            //apending the new row to the table body
+            tablebody.appendChild(newRow); // this give us a table that stacks newer tweets at the top, and older tweets at the bottem
+        }
+    
+    
+
+        function clearTable() { // used for clearing the table when a new set of data comes in
+            var tablebody = document.getElementById("tablebody"); // taking in the table body currently displyed
+            while (tablebody.firstChild) {
+                tablebody.removeChild(tablebody.firstChild); // removing the rows of the table until complete, so we can add more in with AddNewRpw
+            }
+        }
+        
+    </script>
+
+
+    
+    
+    
+</head>
+      
+<div id="myloginmodal" class="modal fade"> <!--identifing the new modal as the login modal for use-->
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header"> <!--creatng the modal header -->
+                <button class="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button> <!--using the escape button to leave the login, will have to refresh to see the login again  -->
+                <h4 class="modal-title">Please Login</h4> <!--title of the modal -->
+
+            </div>
+            <div class="modal-body"> <!--body of the modal -->
+                <form id="loginForm"> <!--assigning a identification mark to be tracked -->
+                    
+                    <div class="form-group"> 
+                        <input type="email" class="form-control" id="Email" placeholder="Email"> <!--taking in the email, and allowing bootstrap to know that the field taken in is in fact an email. -->
+                    </div>
+                    <div class="form-group">
+                        <input type="password" class="form-control" id="Password" placeholder="Password"><!--taking in the passworf, and allowing bootstrap to know that the field taken in is in fact a password, which blurs out the inputted data. -->
+                    </div>
+                    <button type="submit" class="btn btn-primary">Login <!--button for logging in -->
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </form>
+                <p class="text-center">Don't have an account? <a href="registration/">Register here</a></p> <!--This creates a link to the registration page, that if clicked will enable a popup for registering for a new account-->
+                <p class="text-center">Forgot Password? <a href="passwordreset/">Recover here</a></p><!--this is a link to the forgot password page, that allows the user to send an email to themselves and revover their password -->
+                
+            </div>
+        </div>
+    </div>
+</div>
+
+
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script> <!--jQuery library-->
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.14.1/dist/umd/popper.min.js"></script> <!--Popper library, which is a dependency of Bootstrap-->
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script> <!--Bootstrap JavaScript library-->
+
+    <h1 style="font-family: 'Arial', sans-serif; font-size: 40px; font-weight: bold; text-align: center; color: #333; margin-top: 20px;">Power Grid Hazards</h1> <!-- Creating a centered, bold, and large header for the table that tells what the function of the table is -->
+    
+    <br> <!--spacing out the user interface for the table to look the best-->
+    <link rel="stylesheet" type="text/css" href="{%
+        static 'static/website/style.css' %}">  <!--link to the styles on the css-->
+        <div class="table-container"> <!-- this creates the table container -->
+            <table class="custom-table"> <!-- custom table gives me a custom CSS or design -->
+                <table class="table"> <!-- Bootstrap CSS framework for the table -->
+                    <thead> <!-- table header of the section -->
+                        <tr> <!-- a header row in the table -->
+                            <th scope="col">#</th> <!-- This is one of the headers for the table -->
+                            <th scope="col">Tweet</th><!-- This is one of the headers for the table -->
+                            <th scope="col">Location</th><!-- This is one of the headers for the table -->
+                            <th scope="col">Severity</th><!-- This is one of the headers for the table -->
+                            <th scope="col">Time</th><!-- This is one of the headers for the table -->
+                        </tr>
+                    </thead>
+                    <tbody id="tablebody"> <!-- the table body that is added too in the add new row function -->
+                    </tbody>
+                </table>
+            </table>
+        </div>
+        
+        
+{% endblock %}
+
+
+

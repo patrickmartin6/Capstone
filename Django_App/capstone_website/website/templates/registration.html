@@ -1,0 +1,146 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<head>
+    <!-- Including the Bootstrap CSS file for formatting of all bootstrap used-->
+   <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script> <!-- GOogle maps import -->
+   <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+
+    <script type="module"> // module per firebases requirements
+    console.log("Initializing Firebase...");
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js"; //initalizing the app
+    import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-analytics.js"; // analytics
+    import { getAuth, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-auth.js"; //super importsnt, the functions for getting the authentication to write to firebase and creating the user and password
+    import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-database.js"; // getting the database setup, and creating a refrence and setting(writing)
+        const firebaseConfig = { //firebase keys
+          apiKey: "AIzaSyCl06PfaiUY80Dk9ZBKGbBxNRfvGa-6Qkc",
+          authDomain: "website-4c33e.firebaseapp.com",
+          projectId: "website-4c33e",
+          storageBucket: "website-4c33e.appspot.com",
+          messagingSenderId: "1089782674580",
+          appId: "1:1089782674580:web:fa60f5c795c6241152b081",
+          measurementId: "G-FQJEDCK0SN"
+        };
+      
+        // Initialize Firebase
+        
+        const app = initializeApp(firebaseConfig);
+        const analytics = getAnalytics(app);
+        const auth = getAuth();
+        
+        console.log("FIrebase done"); 
+        // setting the script tags for firebase to use
+        const firebaseScriptTags = document.querySelectorAll('script[src^="https://www.gstatic.com/firebasejs/10.4.0/"]');
+        for (const scriptTag of firebaseScriptTags) {
+            scriptTag.onload = initializeFirebase;
+        }
+    
+
+        $(document).ready(function(){ // when the page is switched too, the modal will be loaded, and if it needs to be reloaded, a quick refresh will do the job
+            $('#myregistration').modal('show'); // showing the modal
+    
+            // Intercept form submission
+            $('#registrationform').submit(function(event) { 
+                event.preventDefault(); // Prevent the default form submission
+    
+                // Get the values of the input fields
+                var email = $('#email').val(); // taking in the email   
+                var password1 = $('#password1').val(); // taking in password 1
+                var password2 = $('#password2').val(); // taking in password 2
+                var zipCode = $('#zipCode').val(); // Get the Zip Code
+
+                var emailregecton = /^[^\s@]+@[^\s@]+\.[^\s@]+$/; // checking for incorrect characters in the email
+                if (!emailregecton.test(email)) { // testing for these illegal email characters
+                    alert('Please enter a valid email address'); //alerting the user if submitted with an incorrect email
+                    return;
+                }
+
+                if (password1.length < 6) { // checking the password validation for the firebase parametrs - I did not add more due to the parameters set by the reset password link and its requirements
+                    alert('Password should be at least 6 characters long');
+                    return;
+                }
+    
+                // Check if passwords match
+                if (password1 !== password2) {
+                    // Passwords don't match, show an error message
+                    $('#passwordnomatch').text('Passwords do not match');
+                    return; // Prevent form submission
+                }
+    
+                // Create a user with email and password
+                createUserWithEmailAndPassword(auth, email, password1)
+                .then((userCredential) => {
+                    // Save additional user data (Zip Code) to the Realtime Database
+                    var replacement = email.replaceAll(".", ""); // storing the email in the format that is accepted by the realtime database
+                    replacement.replaceAll("#", ""); // removing the # for another character
+                    replacement.replaceAll("$", ""); // removing the $ for another character
+                    console.log(replacement);
+                    
+                    var userId = replacement;
+                    var userData = { // setting up the structure for the users/ dataa
+                        email: email,
+                        zipCode: zipCode
+                    };
+    
+                        // Reference to the Firebase Realtime Database
+                        var db = getDatabase()
+    
+                        // Save the user data to the database under the user's ID
+                        set(ref(db, 'users/' + userId), userData) // Use set() to set data at a specific location in firebase
+                        .then(function () {
+                            sessionStorage.setItem('userLoggedIn', 'true'); // setting this so that there is no need to login on home page
+                            window.location.href = 'http://127.0.0.1:8000/'; // directing to the inital page once registration is COMPLETE
+                        
+                            
+                        })
+                        .catch(function (error) { // error catching
+                            console.error("Error saving user da ta:", error);
+                        }); // error catching
+                        
+                    })
+                    .catch((error) => { // more errs
+                        var errorcode = error.code;
+                        var errormessage = error.message;
+                        console.error("Error creating user:", error);
+                    });
+    
+                // Close the modal
+                $('#myregistration').modal('hide');
+            });
+        });
+    </script>
+</head>
+
+<div id="myregistration" class="modal fade"> <!--using the bootstrap modl for the registration of the user-->
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header"> <!--creating the header in the attempt to lock the whitespace - did not work-->
+                <button class="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button> <!--locking the close button-->
+                <h4 class="modal-title">Please Register</h4> <!--modal title-->
+            </div>
+            <div class="modal-body">
+                <form id="registrationform"> <!-- registration form for the modal-->
+                    
+                    <div class="form-group">
+                        <input type="email" id="email" class="form-control" placeholder="Email"><!--taking in the email to send to firebase-->
+                    </div>
+                    <div class="form-group">
+                        <input type="password" id="password1" class="form-control" placeholder="Enter 6 character Password"><!--taking in the password to send to firebase-->
+                    </div>
+                    <div class="form-group">
+                        <input type="password" id="password2" class="form-control" placeholder="Confirm 6 character Password"><!--taking in the password to confirm to send to firebase-->
+                        <span id="passwordnomatch" style="color: red;"></span> <!-- Display error message -->
+                    </div>
+                    <div class="form-group">
+                        <input type="text" id="zipCode" class="form-control" pattern="\d{5}" placeholder="Zip Code"><!--taking in the zip code to send to firebase-->
+                    </div>
+                    <button type="submit" class="btn btn-primary">Register</button> <!--register button that closes the modal if sucessful, and moves to the next page-->
+                </form>
+
+                
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
